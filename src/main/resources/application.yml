@@ -1,10 +1,17 @@
+resilience4j:
+  circuitbreaker:
+    instances:
+      userServiceCB:
+        slidingWindowSize: 5
+        permittedNumberOfCallsInHalfOpenState: 2
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+
 spring:
   application:
     name: api-gateway
-#   config:
-    # import: optional:configserver:http://localhost:8080
-    
-    
+  #   config:
+  # import: optional:configserver:http://localhost:8080
 
   cloud:
     gateway:
@@ -12,31 +19,47 @@ spring:
         locator:
           enabled: true
       routes:
-      - id: user_service_route
-        uri: lb://USER-SERVICE
-        predicates:
-          - Path=/api/v1/users/**
-        filters:
-          - name: RequestRateLimiter
-            args:
-              redis-rate-limiter.replenishRate: 3  # requests per second
-              redis-rate-limiter.burstCapacity: 5  # max burst capacity
-              redis-rate-limiter.requestedTokens: 1
-              key-resolver: "#{@userKeyResolver}"
-          - StripPrefix=1
-      - id: auth_service_route
-        uri: lb://AUTH-SERVICE
-        predicates:
-          - Path=/api/v1/auth/**
-        filters:
-          - name: RequestRateLimiter
-            args:
-              redis-rate-limiter.replenishRate: 3  # requests per second
-              redis-rate-limiter.burstCapacity: 5  # max burst capacity
-              redis-rate-limiter.requestedTokens: 1
-              key-resolver: "#{@userKeyResolver}"
-          # - name: JwtAuthFilter
-          - StripPrefix=1
+        - id: user_service_route
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 3 # requests per second
+                redis-rate-limiter.burstCapacity: 5 # max burst capacity
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: userServiceCB
+                fallbackUri: forward:/fallback
+            # - name: Retry
+            #   args:
+            #     retries: 3
+            #     statuses: INTERNAL_SERVER_ERROR,NOT_IMPLEMENTED,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+            - StripPrefix=1
+        - id: auth_service_route
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 3 # requests per second
+                redis-rate-limiter.burstCapacity: 5 # max burst capacity
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: authServiceCB
+                fallbackUri: forward:/fallback
+            # - name: Retry
+            #   args:
+            #     retries: 3
+            #     statuses: INTERNAL_SERVER_ERROR,NOT_IMPLEMENTED,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+            # - name: JwtAuthFilter
+            - StripPrefix=1
     config:
       enabled: false
 
@@ -44,7 +67,6 @@ spring:
     redis:
       host: localhost
       port: 6379
-     
 
 jwt:
   secret: X0iDLiUGr5em1s0hWKnZCMdJ+irvhURKSo1faNKpGxY=
@@ -78,6 +100,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: gateway
- 
-  
+        include: "*"
