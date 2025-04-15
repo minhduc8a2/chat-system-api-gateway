@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import lombok.Data;
 
 @Component
+// @PropertySource("classpath:microservice.yml")
 @ConfigurationProperties(prefix = "microservice")
 @Data
 public class MicroserviceManager {

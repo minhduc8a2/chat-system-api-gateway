@@ -1,0 +1,83 @@
+spring:
+  application:
+    name: api-gateway
+#   config:
+    # import: optional:configserver:http://localhost:8080
+    
+    
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+      - id: user_service_route
+        uri: lb://USER-SERVICE
+        predicates:
+          - Path=/api/v1/users/**
+        filters:
+          - name: RequestRateLimiter
+            args:
+              redis-rate-limiter.replenishRate: 3  # requests per second
+              redis-rate-limiter.burstCapacity: 5  # max burst capacity
+              redis-rate-limiter.requestedTokens: 1
+              key-resolver: "#{@userKeyResolver}"
+          - StripPrefix=1
+      - id: auth_service_route
+        uri: lb://AUTH-SERVICE
+        predicates:
+          - Path=/api/v1/auth/**
+        filters:
+          - name: RequestRateLimiter
+            args:
+              redis-rate-limiter.replenishRate: 3  # requests per second
+              redis-rate-limiter.burstCapacity: 5  # max burst capacity
+              redis-rate-limiter.requestedTokens: 1
+              key-resolver: "#{@userKeyResolver}"
+          # - name: JwtAuthFilter
+          - StripPrefix=1
+    config:
+      enabled: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+     
+
+jwt:
+  secret: X0iDLiUGr5em1s0hWKnZCMdJ+irvhURKSo1faNKpGxY=
+  expiration-time: 900000
+  refresh-token:
+    expiration-time: 604800000
+
+microservice:
+  services:
+    - name: USER-SERVICE
+      unprotectedEndpoints:
+        # - /api/v1/users/email_exists
+    - name: AUTH-SERVICE
+      unprotectedEndpoints:
+        - /api/v1/auth/login
+        - /api/v1/auth/register
+        - /api/v1/auth/refresh
+
+server:
+  port: 8083
+
+logging:
+  level:
+    # org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.gateway.filter.ratelimit: DEBUG
+
+management:
+  endpoint:
+    gateway:
+      access: unrestricted
+  endpoints:
+    web:
+      exposure:
+        include: gateway
+ 
+  
