@@ -38,7 +38,6 @@ spring:
             #   args:
             #     retries: 3
             #     statuses: INTERNAL_SERVER_ERROR,NOT_IMPLEMENTED,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
-            - StripPrefix=1
         - id: auth_service_route
           uri: lb://AUTH-SERVICE
           predicates:
@@ -59,7 +58,6 @@ spring:
             #     retries: 3
             #     statuses: INTERNAL_SERVER_ERROR,NOT_IMPLEMENTED,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
             # - name: JwtAuthFilter
-            - StripPrefix=1
         - id: chat_service_route
           uri: lb://CHAT-SERVICE
           predicates:
@@ -80,7 +78,6 @@ spring:
             #     retries: 3
             #     statuses: INTERNAL_SERVER_ERROR,NOT_IMPLEMENTED,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
             # - name: JwtAuthFilter
-            - StripPrefix=1
     config:
       enabled: false
 
