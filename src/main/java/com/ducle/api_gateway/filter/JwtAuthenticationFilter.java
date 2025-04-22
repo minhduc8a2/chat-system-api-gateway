@@ -1,4 +1,5 @@
 package com.ducle.api_gateway.filter;
+
 import java.util.List;
 
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -42,7 +43,7 @@ public class JwtAuthenticationFilter implements GlobalFilter {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         log.info("Request Path: {}", request.getURI().getPath());
-        if(!routerValidator.isSecured(request)){
+        if (!routerValidator.isSecured(request)) {
             log.info("No need to filter, request is not secured");
             return chain.filter(exchange);
         }
@@ -50,12 +51,13 @@ public class JwtAuthenticationFilter implements GlobalFilter {
             String token = extractToken(request);
             if (token != null && jwtUtils.isTokenValid(token)) {
                 String username = jwtUtils.extractUsername(token);
+                Long userId = jwtUtils.extractUserId(token);
                 List<String> roles = jwtUtils.extractRoles(token);
 
-              
                 ServerHttpRequest mutatedRequest = exchange.getRequest()
                         .mutate()
                         .header("X-User-Username", username)
+                        .header("X-User-UserId", userId.toString())
                         .header("X-User-Roles", objectMapper.writeValueAsString(roles))
                         .build();
 
