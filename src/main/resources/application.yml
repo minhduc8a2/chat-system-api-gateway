@@ -60,6 +60,27 @@ spring:
             #     statuses: INTERNAL_SERVER_ERROR,NOT_IMPLEMENTED,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
             # - name: JwtAuthFilter
             - StripPrefix=1
+        - id: chat_service_route
+          uri: lb://CHAT-SERVICE
+          predicates:
+            - Path=/api/v1/chat/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 3 # requests per second
+                redis-rate-limiter.burstCapacity: 5 # max burst capacity
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: chatServiceCB
+                fallbackUri: forward:/fallback
+            # - name: Retry
+            #   args:
+            #     retries: 3
+            #     statuses: INTERNAL_SERVER_ERROR,NOT_IMPLEMENTED,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+            # - name: JwtAuthFilter
+            - StripPrefix=1
     config:
       enabled: false
 
