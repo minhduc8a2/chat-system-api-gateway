@@ -15,6 +15,19 @@ spring:
 
   cloud:
     gateway:
+      globalcors:
+        corsConfigurations:
+          "[/**]":
+            allowedOrigins: "http://localhost:5173"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
       discovery:
         locator:
           enabled: true
@@ -72,6 +85,26 @@ spring:
             - name: CircuitBreaker
               args:
                 name: chatServiceCB
+                fallbackUri: forward:/fallback
+            # - name: Retry
+            #   args:
+            #     retries: 3
+            #     statuses: INTERNAL_SERVER_ERROR,NOT_IMPLEMENTED,BAD_GATEWAY,SERVICE_UNAVAILABLE,GATEWAY_TIMEOUT
+            # - name: JwtAuthFilter
+        - id: message_service_route
+          uri: lb://MESSAGE-SERVICE
+          predicates:
+            - Path=/api/v1/messages/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 3 # requests per second
+                redis-rate-limiter.burstCapacity: 5 # max burst capacity
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: messageServiceCB
                 fallbackUri: forward:/fallback
             # - name: Retry
             #   args:
